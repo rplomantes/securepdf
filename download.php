@@ -4,20 +4,22 @@ require_login();
 
 use setasign\Fpdi\TcpdfFpdi;
 
-// 1. Get activity ID
-$id = required_param('id', PARAM_INT);
+global $USER;
 
-// 2. Get course module
-$cm = get_coursemodule_from_id('securepdf', $id, 0, false, MUST_EXIST);
+// 1. Get course module ID
+$cmid = required_param('id', PARAM_INT);
 
-// 3. Get context + permission
+// 2. Get course module and context
+$cm = get_coursemodule_from_id('securepdf', $cmid, 0, false, MUST_EXIST);
 $context = context_module::instance($cm->id);
+
+// 3. Require view capability
 require_capability('mod/securepdf:view', $context);
 
 // 4. Get file storage
 $fs = get_file_storage();
 
-// 5. Fetch PDF file
+// 5. Fetch PDF file (itemid = 0)
 $files = $fs->get_area_files(
     $context->id,
     'mod_securepdf',
@@ -33,14 +35,12 @@ if (empty($files)) {
 
 $file = reset($files);
 
-// 6. Create temp files
+// 6. Create temporary files
 $tempin  = tempnam(sys_get_temp_dir(), 'spdf_in');
 $tempout = tempnam(sys_get_temp_dir(), 'spdf_out');
-
-// 7. Copy Moodle file to temp
 $file->copy_content_to($tempin);
 
-// 8. Watermark PDF
+// 7. Watermark PDF
 $pdf = new TcpdfFpdi();
 $pagecount = $pdf->setSourceFile($tempin);
 
@@ -65,16 +65,16 @@ for ($i = 1; $i <= $pagecount; $i++) {
     $pdf->StopTransform();
 }
 
-// 9. Output watermarked PDF
+// 8. Output watermarked PDF
 $pdf->Output($tempout, 'F');
 
-// 10. Force download
+// 9. Force download
 header('Content-Type: application/pdf');
 header('Content-Disposition: attachment; filename="secure.pdf"');
 header('Content-Length: ' . filesize($tempout));
 readfile($tempout);
 
-// 11. Cleanup
+// 10. Cleanup
 @unlink($tempin);
 @unlink($tempout);
 exit;
