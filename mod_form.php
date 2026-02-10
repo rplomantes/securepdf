@@ -15,14 +15,40 @@ $mform->addRule('name', null, 'required', null, 'client');
 $this->standard_intro_elements();
 
 
-$mform->addElement('filepicker', 'pdf', get_string('pdf', 'securepdf'), null, [
-'accepted_types' => ['.pdf'],
-'maxbytes' => 0
+$mform->addElement('filemanager', 'pdf', get_string('pdf', 'securepdf'), null, [
+    'subdirs' => 0,
+    'maxbytes' => 0,
+    'accepted_types' => ['.pdf']
 ]);
 $mform->addRule('pdf', null, 'required', null, 'client');
+
 
 
 $this->standard_coursemodule_elements();
 $this->add_action_buttons();
 }
+
+public function data_preprocessing(&$defaultvalues) {
+    if (!empty($this->current->instance)) {
+        // Editing existing activity
+        $context = context_module::instance($this->context->instanceid);
+    } else {
+        // Adding new activity
+        $context = context_course::instance($this->course->id);
+    }
+
+    $draftitemid = file_get_submitted_draft_itemid('pdf');
+    file_prepare_draft_area(
+        $draftitemid,
+        $context->id,
+        'mod_securepdf',
+        'pdf',
+        0,
+        ['subdirs' => 0]
+    );
+
+    $defaultvalues['pdf'] = $draftitemid;
+}
+
+
 }
