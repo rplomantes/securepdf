@@ -7,13 +7,17 @@ defined('MOODLE_INTERNAL') || die();
 function securepdf_add_instance($data, $mform) {
     global $DB;
 
-    $data->timecreated = time();
+    $data->timecreated  = time();
     $data->timemodified = time();
 
-    // Insert record
+    // Insert instance record
     $id = $DB->insert_record('securepdf', $data);
 
-    // Save uploaded PDF file
+    // Get course module + context (THIS IS THE FIX)
+    $cm = get_coursemodule_from_instance('securepdf', $id, $data->course);
+    $context = context_module::instance($cm->id);
+
+    // Save uploaded PDF
     file_postupdate_standard_filemanager(
         $data,
         'pdf',
@@ -22,7 +26,7 @@ function securepdf_add_instance($data, $mform) {
             'maxbytes' => 0,
             'accepted_types' => ['.pdf']
         ],
-        context_module::instance($data->coursemodule),
+        $context,
         'mod_securepdf',
         'pdf',
         0
@@ -42,7 +46,11 @@ function securepdf_update_instance($data, $mform) {
 
     $DB->update_record('securepdf', $data);
 
-    // Update PDF if replaced
+    // Get course module + context (THIS IS THE FIX)
+    $cm = get_coursemodule_from_instance('securepdf', $data->id, $data->course);
+    $context = context_module::instance($cm->id);
+
+    // Update uploaded PDF
     file_postupdate_standard_filemanager(
         $data,
         'pdf',
@@ -51,7 +59,7 @@ function securepdf_update_instance($data, $mform) {
             'maxbytes' => 0,
             'accepted_types' => ['.pdf']
         ],
-        context_module::instance($data->coursemodule),
+        $context,
         'mod_securepdf',
         'pdf',
         0
