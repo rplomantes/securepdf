@@ -37,6 +37,7 @@ if (empty($files)) {
 
 $file = reset($files);
 
+// URL for iframe (view in browser)
 $fileurl = moodle_url::make_pluginfile_url(
     $context->id,
     'mod_securepdf',
@@ -46,11 +47,23 @@ $fileurl = moodle_url::make_pluginfile_url(
     $file->get_filename()
 );
 
+// URL for **watermarked download**
+$downloadurl = new moodle_url('/mod/securepdf/download.php', [
+    'id' => $cm->id
+]);
+
+// Display the PDF in iframe
 echo html_writer::tag('iframe', '', [
     'src' => $fileurl,
     'width' => '100%',
     'height' => '800',
     'style' => 'border:1px solid #ccc;'
 ]);
+
+// Add a Moodle-style download button (watermarked)
+echo html_writer::div(
+    html_writer::link($downloadurl, get_string('download', 'moodle'), ['class' => 'btn btn-primary mt-2']),
+    'text-center'
+);
 
 echo $OUTPUT->footer();
