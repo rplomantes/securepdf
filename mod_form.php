@@ -33,31 +33,38 @@ class mod_securepdf_mod_form extends moodleform_mod {
      * Preprocess data for filemanager
      */
     public function data_preprocessing(&$defaultvalues) {
-        // Draft item for filemanager
-        $draftitemid = file_get_submitted_draft_itemid('pdf');
+    // Draft item for filemanager
+    $draftitemid = file_get_submitted_draft_itemid('pdf');
 
-        if (!empty($this->current->instance)) {
-            // Edit mode: module exists
-            $cm = get_coursemodule_from_instance('securepdf', $this->current->instance, $this->_customdata['course']->id, false, MUST_EXIST);
-            $context = context_module::instance($cm->id);
+    // Determine context
+    if (!empty($this->current->instance)) {
+        // Edit mode
+        $cm = get_coursemodule_from_instance('securepdf', $this->current->instance, $this->current->course, false, MUST_EXIST);
+        $context = context_module::instance($cm->id);
+    } else {
+        // Add mode
+        if (!empty($this->current->course)) {
+            $context = context_course::instance($this->current->course);
         } else {
-            // Add mode: module not created yet, use course context
+            // Last resort fallback: try to use _customdata['course'] if available
             if (empty($this->_customdata['course']) || empty($this->_customdata['course']->id)) {
-                throw new coding_exception('Course object not passed to the form in add mode');
+                throw new coding_exception('Course object not available in add mode');
             }
             $context = context_course::instance($this->_customdata['course']->id);
         }
-
-        // Prepare draft area
-        file_prepare_draft_area(
-            $draftitemid,
-            $context->id,
-            'mod_securepdf',
-            'pdf',
-            0,
-            ['subdirs' => 0]
-        );
-
-        $defaultvalues['pdf'] = $draftitemid;
     }
+
+    // Prepare draft area
+    file_prepare_draft_area(
+        $draftitemid,
+        $context->id,
+        'mod_securepdf',
+        'pdf',
+        0,
+        ['subdirs' => 0]
+    );
+
+    $defaultvalues['pdf'] = $draftitemid;
+}
+
 }
