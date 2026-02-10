@@ -10,14 +10,14 @@ function securepdf_add_instance($data, $mform) {
     $data->timecreated  = time();
     $data->timemodified = time();
 
-    // Insert instance
+    // Insert instance first
     $id = $DB->insert_record('securepdf', $data);
 
-    // Get module context **after insert**
-    $cm = get_coursemodule_from_instance('securepdf', $id, $data->course);
+    // Now module exists, get CM and context
+    $cm = get_coursemodule_from_instance('securepdf', $id, $data->course, false, MUST_EXIST);
     $context = context_module::instance($cm->id);
 
-    // Move uploaded files from draft to module context
+    // Save uploaded PDF to module context
     file_postupdate_standard_filemanager(
         $data,
         'pdf',
@@ -29,11 +29,12 @@ function securepdf_add_instance($data, $mform) {
         $context,
         'mod_securepdf',
         'pdf',
-        0 // itemid = 0
+        0
     );
 
     return $id;
 }
+
 
 
 /**
