@@ -29,15 +29,18 @@ $this->add_action_buttons();
 }
 
 public function data_preprocessing(&$defaultvalues) {
+    // Draft item for the PDF file
+    $draftitemid = file_get_submitted_draft_itemid('pdf');
+
     if (!empty($this->current->instance)) {
         // Editing existing activity
-        $context = context_module::instance($this->context->instanceid);
+        $context = context_module::instance($this->current->id);
     } else {
         // Adding new activity
-        $context = context_course::instance($this->course->id);
+        // Use course context as fallback for draft
+        $context = context_course::instance($this->_customdata['course']->id);
     }
 
-    $draftitemid = file_get_submitted_draft_itemid('pdf');
     file_prepare_draft_area(
         $draftitemid,
         $context->id,
@@ -49,6 +52,7 @@ public function data_preprocessing(&$defaultvalues) {
 
     $defaultvalues['pdf'] = $draftitemid;
 }
+
 
 
 }
