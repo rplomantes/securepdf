@@ -10,28 +10,10 @@ function securepdf_add_instance($data, $mform) {
     $data->timecreated  = time();
     $data->timemodified = time();
 
-    // Insert instance first
     $id = $DB->insert_record('securepdf', $data);
 
-    // Now module exists, get CM and context
-    $cm = get_coursemodule_from_instance('securepdf', $id, $data->course, false, MUST_EXIST);
-    $context = context_module::instance($cm->id);
-
-    // Save uploaded PDF to module context
-    file_postupdate_standard_filemanager(
-        $data,
-        'pdf',
-        [
-            'subdirs' => 0,
-            'maxbytes' => 0,
-            'accepted_types' => ['.pdf']
-        ],
-        $context,
-        'mod_securepdf',
-        'pdf',
-        0
-    );
-
+    // DO NOT call get_coursemodule_from_instance() here!
+    // Save files will be handled automatically later
     return $id;
 }
 
@@ -40,33 +22,23 @@ function securepdf_add_instance($data, $mform) {
 /**
  * Update an existing Secure PDF instance
  */
-function securepdf_update_instance($data, $mform) {
+function securepdf_after_add_instance($data, $mform) {
     global $DB;
 
-    $data->id = $data->instance;
-    $data->timemodified = time();
-
-    $DB->update_record('securepdf', $data);
-
-    $cm = get_coursemodule_from_instance('securepdf', $data->id, $data->course);
+    $cm = get_coursemodule_from_instance('securepdf', $data->id, $data->course, false, MUST_EXIST);
     $context = context_module::instance($cm->id);
 
     file_postupdate_standard_filemanager(
         $data,
         'pdf',
-        [
-            'subdirs' => 0,
-            'maxbytes' => 0,
-            'accepted_types' => ['.pdf']
-        ],
+        ['subdirs'=>0, 'maxbytes'=>0, 'accepted_types'=>['.pdf']],
         $context,
         'mod_securepdf',
         'pdf',
         0
     );
-
-    return true;
 }
+
 
 
 /**
