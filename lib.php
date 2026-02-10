@@ -10,14 +10,13 @@ function securepdf_add_instance($data, $mform) {
     $data->timecreated  = time();
     $data->timemodified = time();
 
-    // Insert instance record
+    // Insert instance
     $id = $DB->insert_record('securepdf', $data);
 
-    // Get course module + context (THIS IS THE FIX)
-    $cm = get_coursemodule_from_instance('securepdf', $id, $data->course);
-    $context = context_module::instance($cm->id);
+    // COURSE context (module does not exist yet!)
+    $context = context_course::instance($data->course);
 
-    // Save uploaded PDF
+    // Save uploaded PDF (TEMP → course context)
     file_postupdate_standard_filemanager(
         $data,
         'pdf',
@@ -35,6 +34,7 @@ function securepdf_add_instance($data, $mform) {
     return $id;
 }
 
+
 /**
  * Update an existing Secure PDF instance
  */
@@ -46,11 +46,10 @@ function securepdf_update_instance($data, $mform) {
 
     $DB->update_record('securepdf', $data);
 
-    // Get course module + context (THIS IS THE FIX)
+    // NOW the module exists
     $cm = get_coursemodule_from_instance('securepdf', $data->id, $data->course);
     $context = context_module::instance($cm->id);
 
-    // Update uploaded PDF
     file_postupdate_standard_filemanager(
         $data,
         'pdf',
@@ -67,6 +66,7 @@ function securepdf_update_instance($data, $mform) {
 
     return true;
 }
+
 
 /**
  * Delete a Secure PDF instance
