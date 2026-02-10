@@ -23,7 +23,7 @@ $files = $fs->get_area_files(
     'mod_securepdf',
     'pdf',
     0,
-    'itemid, filepath, filename',
+    'filename',
     false
 );
 
