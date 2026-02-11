@@ -10,7 +10,16 @@ $securepdf = $DB->get_record('securepdf', ['id' => $cm->instance], '*', MUST_EXI
 require_login($course, true, $cm);
 
 $context = context_module::instance($cm->id);
-require_capability('mod/securepdf:view', $context);
+
+if (has_capability('mod/securepdf:viewiframe', $context)) {
+    // Teachers/managers: show iframe
+    echo html_writer::tag('iframe', '', [
+        'src' => $fileurl,
+        'width' => '100%',
+        'height' => '800',
+        'style' => 'border:1px solid #ccc;'
+    ]);
+} 
 
 $PAGE->set_url('/mod/securepdf/view.php', ['id' => $id]);
 $PAGE->set_title(format_string($securepdf->name));
