@@ -1,5 +1,6 @@
 <?php
 
+require_once(__DIR__ . '/vendor/fpdi/src/autoload.php');
 require('../../config.php');
 require_login();
 

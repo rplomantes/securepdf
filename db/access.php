@@ -8,14 +8,6 @@ $capabilities = [
 'manager' => CAP_ALLOW
 ]
 ],
-'mod/securepdf:view' => [
-'captype' => 'read',
-'contextlevel' => CONTEXT_MODULE,
-'archetypes' => [
-'student' => CAP_ALLOW,
-'teacher' => CAP_ALLOW
-]
-],
 'mod/securepdf:viewpdf' => [
 'captype' => 'read',
 'contextlevel' => CONTEXT_MODULE,
