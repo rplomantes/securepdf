@@ -1,97 +1,101 @@
 <?php
-
 require('../../config.php');
 require_once(__DIR__ . '/vendor/autoload.php');
 
 require_login();
-
-// Release session immediately (prevents Redis lock issue)
 \core\session\manager::write_close();
 
 use setasign\Fpdi\TcpdfFpdi;
 
 $id = required_param('id', PARAM_INT);
-
 $cm = get_coursemodule_from_id('securepdf', $id, 0, false, MUST_EXIST);
 $context = context_module::instance($cm->id);
 
 require_capability('mod/securepdf:viewpdf', $context);
 
-// Get the PDF file from Moodle file storage
+// Get the PDF file
 $fs = get_file_storage();
-$files = $fs->get_area_files(
-    $context->id,
-    'mod_securepdf',
-    'pdf',
-    0,
-    'filename',
-    false
-);
-
+$files = $fs->get_area_files($context->id, 'mod_securepdf', 'pdf', 0, 'filename', false);
 if (empty($files)) {
     throw new moodle_exception('filenotfound', 'error');
 }
-
 $file = reset($files);
 
-// Temporary files
-$tempin  = tempnam(sys_get_temp_dir(), 'spdf_in');
-$tempout = tempnam(sys_get_temp_dir(), 'spdf_out');
-
-$file->copy_content_to($tempin);
-
-// Load settings
+// Load admin settings
 $config = get_config('mod_securepdf');
-
 $enablewatermark = $config->enablewatermark ?? 1;
-$opacity         = $config->opacity ?? 0.5;          // slightly stronger
-$fontmultiplier  = $config->fontmultiplier ?? 0.25; // reasonable font size
+$opacity         = $config->opacity ?? 0.5;
+$fontmultiplier  = $config->fontmultiplier ?? 0.25;
 $rotation        = $config->rotation ?? 45;
 $textcolor       = $config->textcolor ?? '150,150,150';
-
 list($r, $g, $b) = array_map('intval', explode(',', $textcolor));
 
-// Initialize FPDI
+// Prepare FPDI
 $pdf = new TcpdfFpdi();
-$pagecount = $pdf->setSourceFile($tempin);
+$tempfile = tempnam(sys_get_temp_dir(), 'spdf_in');
+$file->copy_content_to($tempfile);
 
-for ($pageNo = 1; $pageNo <= $pagecount; $pageNo++) {
-    // Import the page
-    $templateId = $pdf->importPage($pageNo);
-    $size = $pdf->getTemplateSize($templateId);
-
-    // Add page with correct orientation and size
-    $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
-    $pdf->useTemplate($templateId);
-
-    // Add watermark if enabled
-    if ($enablewatermark) {
-        $pdf->SetAlpha((float)$opacity);
-        $pdf->SetFont('helvetica', 'B', $size['width'] * (float)$fontmultiplier);
-        $pdf->SetTextColor($r, $g, $b);
-
-        $centerX = $size['width'] / 2;
-        $centerY = $size['height'] / 2;
-        $textWidth = $pdf->GetStringWidth($USER->email);
-
-        $pdf->StartTransform();
-        $pdf->Rotate((float)$rotation, $centerX, $centerY);
-        $pdf->Text($centerX - ($textWidth / 2), $centerY, $USER->email);
-        $pdf->StopTransform();
-    }
+// Safety check
+if (!file_exists($tempfile) || filesize($tempfile) == 0) {
+    throw new moodle_exception('filenotfound', 'error', '', 'PDF is missing or empty');
 }
 
-// Output the PDF to temporary file
-$pdf->Output($tempout, 'F');
+$pagecount = $pdf->setSourceFile($tempfile);
+for ($pageNo = 1; $pageNo <= $pagecount; $pageNo++) {
+    $templateId = $pdf->importPage($pageNo);
+    $size = $pdf->getTemplateSize($templateId);
+    $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
 
-// Serve using Moodle safe method
+    if ($enablewatermark) {
+        // Draw watermark behind content
+        $pdf->SetAlpha((float)$opacity);
+        $textWidth = $pdf->GetStringWidth($USER->email);
+        $fontsize = min($size['width'] * $fontmultiplier, $size['width'] * 0.8 / strlen($USER->email));
+        $maxFontSize = $size['width'] * (float)$fontmultiplier; // default big font
+        $margin = 20; // leave some margin on the sides
+        $textWidth = $pdf->GetStringWidth($USER->email, 'helvetica', 'B', $maxFontSize);
+
+        if ($textWidth > $size['width'] - $margin) {
+        // scale down proportionally, but not less than half the default
+            $scale = ($size['width'] - $margin) / $textWidth;
+            $fontsize = max($maxFontSize * $scale, $maxFontSize * 0.5);
+        } else {
+            $fontsize = $maxFontSize;
+        }
+
+        $pdf->SetFont('helvetica', 'B', $fontsize);
+
+
+        //$pdf->SetFont('helvetica', 'B', $size['width'] * (float)$fontmultiplier);
+        $pdf->SetTextColor($r, $g, $b);
+        $centerX = $size['width']/2;
+        $centerY = $size['height']/2;
+        $textWidth = $pdf->GetStringWidth($USER->email);
+        $pdf->StartTransform();
+        $pdf->Rotate((float)$rotation, $centerX, $centerY);
+        $pdf->Text($centerX - ($textWidth/2), $centerY, $USER->email);
+        $pdf->StopTransform();
+    }
+    // Reset alpha before rendering the PDF content
+    $pdf->SetAlpha(1);
+    $pdf->SetTextColor(0, 0, 0); // default black
+
+    // Overlay the original PDF content
+    $pdf->useTemplate($templateId);
+}
+
+// Decide inline vs download
+$inline = optional_param('inline', 0, PARAM_INT);
+$download = optional_param('download', 0, PARAM_INT);
 $filename = clean_filename($file->get_filename());
-$inline = optional_param('download', 0, PARAM_INT); // 1 = force download
-send_temp_file($tempout, clean_filename($file->get_filename()), $inline);
 
-//send_temp_file($tempout, $filename);
+if ($download) {
+    $pdf->Output($filename, 'D'); // download
+} else if ($inline) {
+    $pdf->Output($filename, 'I'); // inline
+} else {
+    $pdf->Output($filename, 'D'); // fallback
+}
 
-// Cleanup temporary files
-@unlink($tempin);
-@unlink($tempout);
+@unlink($tempfile);
 exit;

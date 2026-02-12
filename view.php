@@ -52,11 +52,16 @@ $fileurl = moodle_url::make_pluginfile_url(
 // $downloadurl = new moodle_url('/mod/securepdf/download.php', [
 //     'id' => $cm->id
 // ]);
+$iframeurl = new moodle_url('/mod/securepdf/download.php', [
+    'id' => $cm->id,
+    'inline' => 1
+]);
 
 $downloadurl = new moodle_url('/mod/securepdf/download.php', [
     'id' => $cm->id,
-    'download' => 1  // custom flag
+    'download' => 1
 ]);
+
 
 /*
 |--------------------------------------------------------------------------
@@ -68,7 +73,7 @@ $downloadurl = new moodle_url('/mod/securepdf/download.php', [
 if (has_capability('mod/securepdf:viewiframe', $context)) {
 
     echo html_writer::tag('iframe', '', [
-        'src' => $downloadurl,
+        'src' => $iframeurl,
         'width' => '100%',
         'height' => '800',
         'style' => 'border:1px solid #ccc;'
