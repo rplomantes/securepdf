@@ -11,16 +11,7 @@ require_login($course, true, $cm);
 
 $context = context_module::instance($cm->id);
 
-if (has_capability('mod/securepdf:viewiframe', $context)) {
-    // Teachers/managers: show iframe
-    echo html_writer::tag('iframe', '', [
-        'src' => $fileurl,
-        'width' => '100%',
-        'height' => '800',
-        'style' => 'border:1px solid #ccc;'
-    ]);
-} 
-
+// Page setup FIRST
 $PAGE->set_url('/mod/securepdf/view.php', ['id' => $id]);
 $PAGE->set_title(format_string($securepdf->name));
 $PAGE->set_heading(format_string($course->fullname));
@@ -28,6 +19,7 @@ $PAGE->set_context($context);
 
 echo $OUTPUT->header();
 
+// Get file
 $fs = get_file_storage();
 $files = $fs->get_area_files(
     $context->id,
@@ -46,7 +38,7 @@ if (empty($files)) {
 
 $file = reset($files);
 
-// URL for iframe (view in browser)
+// Pluginfile URL
 $fileurl = moodle_url::make_pluginfile_url(
     $context->id,
     'mod_securepdf',
@@ -56,23 +48,39 @@ $fileurl = moodle_url::make_pluginfile_url(
     $file->get_filename()
 );
 
-// URL for **watermarked download**
+// Watermarked download URL
 $downloadurl = new moodle_url('/mod/securepdf/download.php', [
     'id' => $cm->id
 ]);
 
-// Display the PDF in iframe
-echo html_writer::tag('iframe', '', [
-    'src' => $fileurl,
-    'width' => '100%',
-    'height' => '800',
-    'style' => 'border:1px solid #ccc;'
-]);
+/*
+|--------------------------------------------------------------------------
+| Capability Logic
+|--------------------------------------------------------------------------
+*/
 
-// Add a Moodle-style download button (watermarked)
-echo html_writer::div(
-    html_writer::link($downloadurl, get_string('download', 'moodle'), ['class' => 'btn btn-primary mt-2']),
-    'text-center'
-);
+// 👨‍🏫 Teachers / Managers → Can view iframe
+if (has_capability('mod/securepdf:viewiframe', $context)) {
+
+    echo html_writer::tag('iframe', '', [
+        'src' => $fileurl,
+        'width' => '100%',
+        'height' => '800',
+        'style' => 'border:1px solid #ccc;'
+    ]);
+}
+
+// 👨‍🎓 Students + Teachers → Can download
+if (has_capability('mod/securepdf:viewpdf', $context)) {
+
+    echo html_writer::div(
+        html_writer::link(
+            $downloadurl,
+            get_string('download', 'moodle'),
+            ['class' => 'btn btn-primary mt-3']
+        ),
+        'text-center'
+    );
+}
 
 echo $OUTPUT->footer();

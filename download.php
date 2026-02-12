@@ -15,7 +15,7 @@ $id = required_param('id', PARAM_INT);
 $cm = get_coursemodule_from_id('securepdf', $id, 0, false, MUST_EXIST);
 $context = context_module::instance($cm->id);
 
-require_capability('mod/securepdf:view', $context);
+require_capability('mod/securepdf:viewpdf', $context);
 
 $fs = get_file_storage();
 $files = $fs->get_area_files(

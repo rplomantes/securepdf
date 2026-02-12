@@ -21,14 +21,15 @@ $capabilities = [
         ]
     ],
 
-    'mod/securepdf:viewpdf' => [
-        'captype' => 'read',
-        'contextlevel' => CONTEXT_MODULE,
-        'archetypes' => [
-            'teacher' => CAP_ALLOW,
-            'editingteacher' => CAP_ALLOW,
-            'manager' => CAP_ALLOW
-        ]
+   'mod/securepdf:viewpdf' => [
+    'captype' => 'read',
+    'contextlevel' => CONTEXT_MODULE,
+    'archetypes' => [
+        'teacher' => CAP_ALLOW,
+        'editingteacher' => CAP_ALLOW,
+        'manager' => CAP_ALLOW
     ]
+]
+
 ];
 
