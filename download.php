@@ -17,6 +17,7 @@ $context = context_module::instance($cm->id);
 
 require_capability('mod/securepdf:viewpdf', $context);
 
+// Get the PDF file from Moodle file storage
 $fs = get_file_storage();
 $files = $fs->get_area_files(
     $context->id,
@@ -33,49 +34,61 @@ if (empty($files)) {
 
 $file = reset($files);
 
+// Temporary files
 $tempin  = tempnam(sys_get_temp_dir(), 'spdf_in');
 $tempout = tempnam(sys_get_temp_dir(), 'spdf_out');
 
 $file->copy_content_to($tempin);
-//settings
+
+// Load settings
 $config = get_config('mod_securepdf');
 
 $enablewatermark = $config->enablewatermark ?? 1;
-$opacity         = $config->opacity ?? 0.25;
-$fontmultiplier  = $config->fontmultiplier ?? 0.18;
+$opacity         = $config->opacity ?? 0.5;          // slightly stronger
+$fontmultiplier  = $config->fontmultiplier ?? 0.25; // reasonable font size
 $rotation        = $config->rotation ?? 45;
 $textcolor       = $config->textcolor ?? '150,150,150';
 
 list($r, $g, $b) = array_map('intval', explode(',', $textcolor));
 
-// Watermark PDF
+// Initialize FPDI
 $pdf = new TcpdfFpdi();
 $pagecount = $pdf->setSourceFile($tempin);
-if ($enablewatermark) {
 
-    $pdf->SetAlpha((float)$opacity);
-    $pdf->SetFont('helvetica', 'B', $size['width'] * (float)$fontmultiplier);
-    $pdf->SetTextColor($r, $g, $b);
+for ($pageNo = 1; $pageNo <= $pagecount; $pageNo++) {
+    // Import the page
+    $templateId = $pdf->importPage($pageNo);
+    $size = $pdf->getTemplateSize($templateId);
 
-    $centerX = $size['width'] / 2;
-    $centerY = $size['height'] / 2;
-    $textWidth = $pdf->GetStringWidth($USER->email);
+    // Add page with correct orientation and size
+    $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+    $pdf->useTemplate($templateId);
 
-    $pdf->StartTransform();
-    $pdf->Rotate((float)$rotation, $centerX, $centerY);
-    $pdf->Text($centerX - ($textWidth / 2), $centerY, $USER->email);
-    $pdf->StopTransform();
+    // Add watermark if enabled
+    if ($enablewatermark) {
+        $pdf->SetAlpha((float)$opacity);
+        $pdf->SetFont('helvetica', 'B', $size['width'] * (float)$fontmultiplier);
+        $pdf->SetTextColor($r, $g, $b);
+
+        $centerX = $size['width'] / 2;
+        $centerY = $size['height'] / 2;
+        $textWidth = $pdf->GetStringWidth($USER->email);
+
+        $pdf->StartTransform();
+        $pdf->Rotate((float)$rotation, $centerX, $centerY);
+        $pdf->Text($centerX - ($textWidth / 2), $centerY, $USER->email);
+        $pdf->StopTransform();
+    }
 }
 
-
-
+// Output the PDF to temporary file
 $pdf->Output($tempout, 'F');
 
 // Serve using Moodle safe method
 $filename = clean_filename($file->get_filename());
 send_temp_file($tempout, $filename);
 
-// Cleanup
+// Cleanup temporary files
 @unlink($tempin);
 @unlink($tempout);
 exit;
