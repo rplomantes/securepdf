@@ -37,34 +37,36 @@ $tempin  = tempnam(sys_get_temp_dir(), 'spdf_in');
 $tempout = tempnam(sys_get_temp_dir(), 'spdf_out');
 
 $file->copy_content_to($tempin);
+//settings
+$config = get_config('mod_securepdf');
+
+$enablewatermark = $config->enablewatermark ?? 1;
+$opacity         = $config->opacity ?? 0.25;
+$fontmultiplier  = $config->fontmultiplier ?? 0.18;
+$rotation        = $config->rotation ?? 45;
+$textcolor       = $config->textcolor ?? '150,150,150';
+
+list($r, $g, $b) = array_map('intval', explode(',', $textcolor));
 
 // Watermark PDF
 $pdf = new TcpdfFpdi();
 $pagecount = $pdf->setSourceFile($tempin);
-for ($i = 1; $i <= $pagecount; $i++) {
+if ($enablewatermark) {
 
-    $tpl = $pdf->importPage($i);
-    $size = $pdf->getTemplateSize($tpl);
-
-    $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
-
-    // Draw watermark **first**, so it is behind the content
-    $pdf->SetAlpha(0.25);
-    $pdf->SetFont('helvetica', 'B', $size['width'] * 0.18);
-    $pdf->SetTextColor(150, 150, 150);
+    $pdf->SetAlpha((float)$opacity);
+    $pdf->SetFont('helvetica', 'B', $size['width'] * (float)$fontmultiplier);
+    $pdf->SetTextColor($r, $g, $b);
 
     $centerX = $size['width'] / 2;
     $centerY = $size['height'] / 2;
     $textWidth = $pdf->GetStringWidth($USER->email);
 
     $pdf->StartTransform();
-    $pdf->Rotate(45, $centerX, $centerY);
+    $pdf->Rotate((float)$rotation, $centerX, $centerY);
     $pdf->Text($centerX - ($textWidth / 2), $centerY, $USER->email);
     $pdf->StopTransform();
-
-    // Now overlay the original PDF page
-    $pdf->useTemplate($tpl);
 }
+
 
 
 $pdf->Output($tempout, 'F');
