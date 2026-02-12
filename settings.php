@@ -3,33 +3,28 @@ defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
 
-    $settings = new admin_settingpage(
-        'mod_securepdf_settings',
-        get_string('pluginname', 'securepdf')
-    );
-
     // Enable watermark
     $settings->add(new admin_setting_configcheckbox(
         'mod_securepdf/enablewatermark',
-        'Enable watermark',
-        'Enable watermark on downloaded PDFs',
+        get_string('enablewatermark', 'mod_securepdf'),
+        get_string('enablewatermark_desc', 'mod_securepdf'),
         1
     ));
 
     // Opacity
     $settings->add(new admin_setting_configtext(
         'mod_securepdf/opacity',
-        'Watermark opacity',
-        'Value between 0.1 and 1',
+        get_string('opacity', 'mod_securepdf'),
+        get_string('opacity_desc', 'mod_securepdf'),
         '0.25',
         PARAM_FLOAT
     ));
 
-    // Font size multiplier
+    // Font multiplier
     $settings->add(new admin_setting_configtext(
         'mod_securepdf/fontmultiplier',
-        'Font size multiplier',
-        'Recommended: 0.15 - 0.25',
+        get_string('fontmultiplier', 'mod_securepdf'),
+        get_string('fontmultiplier_desc', 'mod_securepdf'),
         '0.18',
         PARAM_FLOAT
     ));
@@ -37,8 +32,8 @@ if ($hassiteconfig) {
     // Rotation
     $settings->add(new admin_setting_configtext(
         'mod_securepdf/rotation',
-        'Rotation angle',
-        'Degrees (e.g. 45)',
+        get_string('rotation', 'mod_securepdf'),
+        get_string('rotation_desc', 'mod_securepdf'),
         '45',
         PARAM_INT
     ));
@@ -46,11 +41,9 @@ if ($hassiteconfig) {
     // Text color
     $settings->add(new admin_setting_configtext(
         'mod_securepdf/textcolor',
-        'Text color (RGB)',
-        'Example: 150,150,150',
+        get_string('textcolor', 'mod_securepdf'),
+        get_string('textcolor_desc', 'mod_securepdf'),
         '150,150,150',
         PARAM_TEXT
     ));
-
-    $ADMIN->add('modsettings', $settings);
 }
