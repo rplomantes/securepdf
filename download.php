@@ -1,8 +1,12 @@
 <?php
 
-require_once(__DIR__ . '/vendor/fpdi/src/autoload.php');
 require('../../config.php');
+require_once(__DIR__ . '/vendor/autoload.php');
+
 require_login();
+
+// Release session immediately (prevents Redis lock issue)
+\core\session\manager::write_close();
 
 use setasign\Fpdi\TcpdfFpdi;
 
@@ -10,19 +14,28 @@ $id = required_param('id', PARAM_INT);
 
 $cm = get_coursemodule_from_id('securepdf', $id, 0, false, MUST_EXIST);
 $context = context_module::instance($cm->id);
+
 require_capability('mod/securepdf:view', $context);
 
 $fs = get_file_storage();
-$files = $fs->get_area_files($context->id, 'mod_securepdf', 'pdf', 0, 'filename', false);
+$files = $fs->get_area_files(
+    $context->id,
+    'mod_securepdf',
+    'pdf',
+    0,
+    'filename',
+    false
+);
 
 if (empty($files)) {
-    throw new moodle_exception('filenotfound', 'error', '', null, 'Secure PDF file not found');
+    throw new moodle_exception('filenotfound', 'error');
 }
 
 $file = reset($files);
 
 $tempin  = tempnam(sys_get_temp_dir(), 'spdf_in');
 $tempout = tempnam(sys_get_temp_dir(), 'spdf_out');
+
 $file->copy_content_to($tempin);
 
 // Watermark PDF
@@ -30,6 +43,7 @@ $pdf = new TcpdfFpdi();
 $pagecount = $pdf->setSourceFile($tempin);
 
 for ($i = 1; $i <= $pagecount; $i++) {
+
     $tpl = $pdf->importPage($i);
     $size = $pdf->getTemplateSize($tpl);
 
@@ -42,19 +56,15 @@ for ($i = 1; $i <= $pagecount; $i++) {
 
     $pdf->StartTransform();
     $pdf->Rotate(45, $size['width']/2, $size['height']/2);
-    $pdf->Text($size['width']*0.05, $size['height']*0.45, $USER->email);
+    $pdf->Text($size['width'] * 0.05, $size['height'] * 0.45, $USER->email);
     $pdf->StopTransform();
 }
 
 $pdf->Output($tempout, 'F');
 
-// Force download with original filename
+// Serve using Moodle safe method
 $filename = clean_filename($file->get_filename());
-header('Content-Type: application/pdf');
-header('Content-Disposition: attachment; filename="' . $filename . '"');
-header('Content-Length: ' . filesize($tempout));
-
-readfile($tempout);
+send_temp_file($tempout, $filename);
 
 // Cleanup
 @unlink($tempin);

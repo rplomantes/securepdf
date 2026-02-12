@@ -1,6 +1,7 @@
 <?php
 
 $capabilities = [
+
     'mod/securepdf:addinstance' => [
         'captype' => 'write',
         'contextlevel' => CONTEXT_COURSE,
@@ -10,7 +11,6 @@ $capabilities = [
         ]
     ],
 
-    // Students are not included here
     'mod/securepdf:viewiframe' => [
         'captype' => 'read',
         'contextlevel' => CONTEXT_MODULE,
@@ -28,7 +28,7 @@ $capabilities = [
             'teacher' => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
             'manager' => CAP_ALLOW
-            // Students are not allowed
         ]
     ]
 ];
+
