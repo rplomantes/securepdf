@@ -86,7 +86,10 @@ $pdf->Output($tempout, 'F');
 
 // Serve using Moodle safe method
 $filename = clean_filename($file->get_filename());
-send_temp_file($tempout, $filename);
+$inline = optional_param('download', 0, PARAM_INT); // 1 = force download
+send_temp_file($tempout, clean_filename($file->get_filename()), $inline);
+
+//send_temp_file($tempout, $filename);
 
 // Cleanup temporary files
 @unlink($tempin);
