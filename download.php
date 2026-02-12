@@ -41,48 +41,35 @@ if (!file_exists($tempfile) || filesize($tempfile) == 0) {
 }
 
 $pagecount = $pdf->setSourceFile($tempfile);
+
 for ($pageNo = 1; $pageNo <= $pagecount; $pageNo++) {
     $templateId = $pdf->importPage($pageNo);
     $size = $pdf->getTemplateSize($templateId);
     $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
 
+    // Overlay the original PDF content first
+    $pdf->useTemplate($templateId);
+
+    // Now add watermark on top
     if ($enablewatermark) {
-        // Draw watermark behind content
-        $pdf->SetAlpha((float)$opacity);
-        $textWidth = $pdf->GetStringWidth($USER->email);
-        $fontsize = min($size['width'] * $fontmultiplier, $size['width'] * 0.8 / strlen($USER->email));
-        $maxFontSize = $size['width'] * (float)$fontmultiplier; // default big font
-        $margin = 20; // leave some margin on the sides
-        $textWidth = $pdf->GetStringWidth($USER->email, 'helvetica', 'B', $maxFontSize);
-
-        if ($textWidth > $size['width'] - $margin) {
-        // scale down proportionally, but not less than half the default
-            $scale = ($size['width'] - $margin) / $textWidth;
-            $fontsize = max($maxFontSize * $scale, $maxFontSize * 0.5);
-        } else {
-            $fontsize = $maxFontSize;
-        }
-
-        $pdf->SetFont('helvetica', 'B', $fontsize);
-
-
-        //$pdf->SetFont('helvetica', 'B', $size['width'] * (float)$fontmultiplier);
+        $pdf->SetAlpha((float)$opacity); // semi-transparent
+        $pdf->SetFont('helvetica', 'B', $size['width'] * (float)$fontmultiplier);
         $pdf->SetTextColor($r, $g, $b);
+
         $centerX = $size['width']/2;
         $centerY = $size['height']/2;
         $textWidth = $pdf->GetStringWidth($USER->email);
+
         $pdf->StartTransform();
         $pdf->Rotate((float)$rotation, $centerX, $centerY);
         $pdf->Text($centerX - ($textWidth/2), $centerY, $USER->email);
         $pdf->StopTransform();
-    }
-    // Reset alpha before rendering the PDF content
-    $pdf->SetAlpha(1);
-    $pdf->SetTextColor(0, 0, 0); // default black
 
-    // Overlay the original PDF content
-    $pdf->useTemplate($templateId);
+        $pdf->SetAlpha(1); // reset transparency
+        $pdf->SetTextColor(0, 0, 0); // reset color
+    }
 }
+
 
 // Decide inline vs download
 $inline = optional_param('inline', 0, PARAM_INT);
