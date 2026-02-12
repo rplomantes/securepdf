@@ -50,15 +50,26 @@ for ($i = 1; $i <= $pagecount; $i++) {
     $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
     $pdf->useTemplate($tpl);
 
-    $pdf->SetAlpha(0.12);
-    $pdf->SetFont('helvetica', 'B', $size['height'] * 0.08);
-    $pdf->SetTextColor(180, 180, 180);
+    // Set transparency (faint)
+    $pdf->SetAlpha(0.08); // slightly lighter than 0.12
 
+    // Set font size proportional to page height (90% of page height)
+    $fontsize = $size['height'] * 0.9; 
+    $pdf->SetFont('helvetica', 'B', $fontsize);
+
+    // Light gray color
+    $pdf->SetTextColor(200, 200, 200);
+
+    // Rotate 90 degrees for vertical watermark
     $pdf->StartTransform();
-    $pdf->Rotate(45, $size['width']/2, $size['height']/2);
-    $pdf->Text($size['width'] * 0.05, $size['height'] * 0.45, $USER->email);
+    $pdf->Rotate(90, $size['width'] / 2, $size['height'] / 2);
+
+    // Center text horizontally and vertically
+    $textWidth = $pdf->GetStringWidth($USER->email);
+    $pdf->Text(($size['width'] - $textWidth) / 2, $size['height'] / 2, $USER->email);
     $pdf->StopTransform();
 }
+
 
 $pdf->Output($tempout, 'F');
 
