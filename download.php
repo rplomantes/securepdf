@@ -41,33 +41,29 @@ $file->copy_content_to($tempin);
 // Watermark PDF
 $pdf = new TcpdfFpdi();
 $pagecount = $pdf->setSourceFile($tempin);
-
 for ($i = 1; $i <= $pagecount; $i++) {
 
     $tpl = $pdf->importPage($i);
     $size = $pdf->getTemplateSize($tpl);
 
     $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
-    $pdf->useTemplate($tpl);
 
-    // Set transparency (faint)
-    $pdf->SetAlpha(0.08); // slightly lighter than 0.12
+    // Draw watermark **first**, so it is behind the content
+    $pdf->SetAlpha(0.25);
+    $pdf->SetFont('helvetica', 'B', $size['width'] * 0.18);
+    $pdf->SetTextColor(150, 150, 150);
 
-    // Set font size proportional to page height (90% of page height)
-    $fontsize = $size['height'] * 0.9; 
-    $pdf->SetFont('helvetica', 'B', $fontsize);
-
-    // Light gray color
-    $pdf->SetTextColor(200, 200, 200);
-
-    // Rotate 90 degrees for vertical watermark
-    $pdf->StartTransform();
-    $pdf->Rotate(90, $size['width'] / 2, $size['height'] / 2);
-
-    // Center text horizontally and vertically
+    $centerX = $size['width'] / 2;
+    $centerY = $size['height'] / 2;
     $textWidth = $pdf->GetStringWidth($USER->email);
-    $pdf->Text(($size['width'] - $textWidth) / 2, $size['height'] / 2, $USER->email);
+
+    $pdf->StartTransform();
+    $pdf->Rotate(45, $centerX, $centerY);
+    $pdf->Text($centerX - ($textWidth / 2), $centerY, $USER->email);
     $pdf->StopTransform();
+
+    // Now overlay the original PDF page
+    $pdf->useTemplate($tpl);
 }
 
 
