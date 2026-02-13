@@ -1,4 +1,28 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Provides secure PDF download with watermark for Moodle.
+ *
+ * @package    mod_securepdf
+ * @copyright  2026 Nephila Web Technology Inc.
+ * @author     Roy Plomantes
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 require('../../config.php');
 
 $id = required_param('id', PARAM_INT);
@@ -48,10 +72,7 @@ $fileurl = moodle_url::make_pluginfile_url(
     $file->get_filename()
 );
 
-// Watermarked download URL
-// $downloadurl = new moodle_url('/mod/securepdf/download.php', [
-//     'id' => $cm->id
-// ]);
+
 $iframeurl = new moodle_url('/mod/securepdf/download.php', [
     'id' => $cm->id,
     'inline' => 1
@@ -72,12 +93,32 @@ $downloadurl = new moodle_url('/mod/securepdf/download.php', [
 // 👨‍🏫 Teachers / Managers → Can view iframe
 if (has_capability('mod/securepdf:viewiframe', $context)) {
 
-    echo html_writer::tag('iframe', '', [
-        'src' => $iframeurl,
-        'width' => '100%',
-        'height' => '800',
-        'style' => 'border:1px solid #ccc;'
+    echo html_writer::tag('button', 'View PDF', [
+        'type' => 'button',
+        'class' => 'btn btn-secondary',
+        'data-toggle' => 'modal',
+        'data-target' => '#securepdfModal'
     ]);
+
+    // Modal HTML
+    echo '
+    <div class="modal fade" id="securepdfModal" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document" style="max-width:90%;">
+        <div class="modal-content" style="height:90vh;">
+          <div class="modal-header">
+            <h5 class="modal-title">'.format_string($securepdf->name).'</h5>
+            <button type="button" class="close" data-dismiss="modal">
+              <span>&times;</span>
+            </button>
+          </div>
+          <div class="modal-body" style="height:100%; padding:0;">
+            <iframe src="'.$iframeurl.'" 
+                    style="width:100%; height:100%; border:none;">
+            </iframe>
+          </div>
+        </div>
+      </div>
+    </div>';
 }
 
 // 👨‍🎓 Students + Teachers → Can download
